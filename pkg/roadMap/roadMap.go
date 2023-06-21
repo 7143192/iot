@@ -4,7 +4,7 @@ import (
 	"iot/pkg/defines"
 )
 
-func RoadMapInit() *defines.RoadMap {
+func MapInit() *defines.RoadMap {
 	res := &defines.RoadMap{}
 	res.Nodes = make([]*defines.MapNode, 0)
 	res.Lanes = make([]*defines.LaneInfo, 0)
@@ -15,10 +15,14 @@ func RoadMapInit() *defines.RoadMap {
 	for i := 0; i < defines.GRID_LINE_NUM; i++ {
 		lane0 := &defines.LaneInfo{}
 		lane1 := &defines.LaneInfo{}
+		lane0.CenterPos = i*(4*defines.LANE_WIDTH+3*defines.SHELVES_WIDTH) + defines.SHELVES_WIDTH + defines.LANE_WIDTH
+		lane1.CenterPos = i*(4*defines.LANE_WIDTH+3*defines.SHELVES_WIDTH) + 2*defines.SHELVES_WIDTH + 3*defines.LANE_WIDTH
 		lane0.LaneType = defines.HORIZONTAL
 		lane1.LaneType = defines.HORIZONTAL
 		lane0.Nodes = make([]*defines.MapNode, 0)
 		lane1.Nodes = make([]*defines.MapNode, 0)
+		lane0.Cars = make([]*defines.Car, 0)
+		lane1.Cars = make([]*defines.Car, 0)
 		for j := 0; j < defines.GRID_LINE_NUM; j++ {
 			// init four nodes in one grid.
 			node0 := &defines.MapNode{}
@@ -53,10 +57,14 @@ func RoadMapInit() *defines.RoadMap {
 	for i := 0; i < defines.GRID_LINE_NUM; i++ {
 		lane0 := &defines.LaneInfo{}
 		lane1 := &defines.LaneInfo{}
+		lane0.CenterPos = i*(4*defines.LANE_WIDTH+3*defines.SHELVES_WIDTH) + defines.SHELVES_WIDTH + defines.LANE_WIDTH
+		lane1.CenterPos = i*(4*defines.LANE_WIDTH+3*defines.SHELVES_WIDTH) + 2*defines.SHELVES_WIDTH + 3*defines.LANE_WIDTH
 		lane0.LaneType = defines.VERTICAL
 		lane1.LaneType = defines.VERTICAL
 		lane0.Nodes = make([]*defines.MapNode, 0)
 		lane1.Nodes = make([]*defines.MapNode, 0)
+		lane0.Cars = make([]*defines.Car, 0)
+		lane1.Cars = make([]*defines.Car, 0)
 		for j := 0; j < defines.GRID_LINE_NUM; j++ {
 			// init four nodes in one grid.
 			node0 := &defines.MapNode{}
@@ -125,24 +133,32 @@ func RoadMapInit() *defines.RoadMap {
 	info0.RangeX[1] = width
 	info0.RangeY[0] = 0
 	info0.RangeY[1] = width
+	info0.Gates[0] = &defines.GateInfo{}
+	info0.Gates[0].GateType = defines.DEST1
 	info0.Gates[0].Center.X = width
 	info0.Gates[0].Center.Y = width - defines.LANE_WIDTH - defines.SHELVES_WIDTH
 	info1.RangeX[0] = (defines.GRID_LINE_NUM - 1) * width
 	info1.RangeX[1] = defines.GRID_LINE_NUM * width
 	info1.RangeY[0] = 0
 	info1.RangeY[1] = width
+	info1.Gates[0] = &defines.GateInfo{}
+	info1.Gates[0].GateType = defines.DEST2
 	info1.Gates[0].Center.X = 2*width + defines.SHELVES_WIDTH + defines.LANE_WIDTH
 	info1.Gates[0].Center.Y = width
 	info2.RangeX[0] = 0
 	info2.RangeX[1] = width
 	info2.RangeY[0] = (defines.GRID_LINE_NUM - 1) * width
 	info2.RangeY[1] = defines.GRID_LINE_NUM * width
+	info2.Gates[0] = &defines.GateInfo{}
+	info2.Gates[0].GateType = defines.DEST3
 	info2.Gates[0].Center.X = width - defines.SHELVES_WIDTH - defines.LANE_WIDTH
 	info2.Gates[0].Center.Y = 2 * width
 	info3.RangeX[0] = (defines.GRID_LINE_NUM - 1) * width
 	info3.RangeX[1] = defines.GRID_LINE_NUM * width
 	info3.RangeY[0] = (defines.GRID_LINE_NUM - 1) * width
 	info3.RangeY[1] = defines.GRID_LINE_NUM * width
+	info3.Gates[0] = &defines.GateInfo{}
+	info3.Gates[0].GateType = defines.DEST4
 	info3.Gates[0].Center.X = 2 * width
 	info3.Gates[0].Center.Y = width*2 + defines.LANE_WIDTH + defines.SHELVES_WIDTH
 	res.Warehouses = append(res.Warehouses, info)
@@ -151,4 +167,113 @@ func RoadMapInit() *defines.RoadMap {
 	res.Warehouses = append(res.Warehouses, info2)
 	res.Warehouses = append(res.Warehouses, info3)
 	return res
+}
+
+func AddOneEdge(graph *defines.Graph, start int, end int, weight int) {
+	graph.Edges[start] = append(graph.Edges[start], &defines.GraphEdge{
+		End:    end,
+		Weight: weight,
+	})
+	graph.Edges[end] = append(graph.Edges[end], &defines.GraphEdge{
+		End:    start,
+		Weight: weight,
+	})
+}
+
+func GraphInit(mapInfo *defines.RoadMap) *defines.Graph {
+	graph := &defines.Graph{}
+	graph.Nodes = make([]*defines.GraphNode, 0)
+	gateNum := 0
+	for i := 0; i < len(mapInfo.Warehouses); i++ {
+		gateNum += len(mapInfo.Warehouses[i].Gates)
+	}
+	graph.Edges = make([][]*defines.GraphEdge, len(mapInfo.Nodes)+gateNum)
+	for i := 0; i < (len(mapInfo.Nodes) + gateNum); i++ {
+		graph.Edges[i] = make([]*defines.GraphEdge, 0)
+	}
+	count := 0
+	N2NDIS := defines.LANE_WIDTH*2 + defines.SHELVES_WIDTH
+	N2GDIS := defines.LANE_WIDTH + defines.SHELVES_WIDTH
+	// generate all nodes. (IDs)
+	// and generate all Node-to-Node edges.
+	for i := 0; i < defines.GRID_LINE_NUM; i++ {
+		for j := 0; j < defines.GRID_LINE_NUM; j++ {
+			node0 := &defines.GraphNode{}
+			node1 := &defines.GraphNode{}
+			node2 := &defines.GraphNode{}
+			node3 := &defines.GraphNode{}
+			node0.ID = count
+			count++
+			node1.ID = count
+			count++
+			node2.ID = count
+			count++
+			node3.ID = count
+			count++
+			graph.Nodes = append(graph.Nodes, node0)
+			graph.Nodes = append(graph.Nodes, node1)
+			graph.Nodes = append(graph.Nodes, node2)
+			graph.Nodes = append(graph.Nodes, node3)
+			graph.Edges[node0.ID] = append(graph.Edges[node0.ID], &defines.GraphEdge{
+				End:    node1.ID,
+				Weight: N2NDIS,
+			})
+			graph.Edges[node0.ID] = append(graph.Edges[node0.ID], &defines.GraphEdge{
+				End:    node2.ID,
+				Weight: N2NDIS,
+			})
+			graph.Edges[node1.ID] = append(graph.Edges[node1.ID], &defines.GraphEdge{
+				End:    node0.ID,
+				Weight: N2NDIS,
+			})
+			graph.Edges[node1.ID] = append(graph.Edges[node1.ID], &defines.GraphEdge{
+				End:    node3.ID,
+				Weight: N2NDIS,
+			})
+			graph.Edges[node2.ID] = append(graph.Edges[node2.ID], &defines.GraphEdge{
+				End:    node0.ID,
+				Weight: N2NDIS,
+			})
+			graph.Edges[node2.ID] = append(graph.Edges[node2.ID], &defines.GraphEdge{
+				End:    node3.ID,
+				Weight: N2NDIS,
+			})
+			graph.Edges[node3.ID] = append(graph.Edges[node3.ID], &defines.GraphEdge{
+				End:    node1.ID,
+				Weight: N2NDIS,
+			})
+			graph.Edges[node3.ID] = append(graph.Edges[node3.ID], &defines.GraphEdge{
+				End:    node2.ID,
+				Weight: N2NDIS,
+			})
+		}
+	}
+	for i := 0; i < gateNum; i++ {
+		// src gates first.
+		node := &defines.GraphNode{}
+		node.ID = count
+		count++
+	}
+	// then generate all gate-to-node edges.
+	idx := defines.GRID_LINE_NUM / 2
+	numOneLevel := 4 * defines.GRID_LINE_NUM
+	startNum := numOneLevel*idx + 4*(idx-1)
+	size := len(mapInfo.Nodes)
+	AddOneEdge(graph, size, startNum+2, N2GDIS)
+	AddOneEdge(graph, size, startNum+7, N2GDIS)
+	AddOneEdge(graph, size+1, startNum+7-numOneLevel, N2GDIS)
+	AddOneEdge(graph, size+1, startNum+4, N2GDIS)
+	AddOneEdge(graph, size+2, startNum+8, N2GDIS)
+	AddOneEdge(graph, size+2, startNum+5, N2GDIS)
+	AddOneEdge(graph, size+3, startNum+3+numOneLevel, N2GDIS)
+	AddOneEdge(graph, size+3, startNum+6, N2GDIS)
+	AddOneEdge(graph, size+4, 3, N2GDIS)
+	AddOneEdge(graph, size+4, 6, N2GDIS)
+	AddOneEdge(graph, size+5, numOneLevel-2, N2GDIS)
+	AddOneEdge(graph, size+5, numOneLevel*2-5, N2GDIS)
+	AddOneEdge(graph, size+6, numOneLevel*(defines.GRID_LINE_NUM-1)+1, N2GDIS)
+	AddOneEdge(graph, size+6, numOneLevel*(defines.GRID_LINE_NUM-2)+2, N2GDIS)
+	AddOneEdge(graph, size+7, defines.GRID_LINE_NUM*defines.GRID_LINE_NUM-4, N2GDIS)
+	AddOneEdge(graph, size+7, defines.GRID_LINE_NUM*defines.GRID_LINE_NUM-7, N2GDIS)
+	return graph
 }

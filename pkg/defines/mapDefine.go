@@ -27,7 +27,11 @@ type MapNode struct {
 type LaneInfo struct {
 	// info for every lane.
 	LaneType int // VERTICAL / HORIZONTAL
-	Nodes    []*MapNode
+	// nodes in vertical lane should have the same X
+	// nodes in horizontal lane should have the same Y
+	CenterPos int
+	Nodes     []*MapNode
+	Cars      []*Car
 }
 
 type GateInfo struct {
