@@ -83,6 +83,72 @@ func RoadMapInit() *defines.RoadMap {
 		res.Lanes = append(res.Lanes, lane1)
 	}
 	// then init warehouses info.
-
+	info := &defines.WarehouseInfo{}
+	info0 := &defines.WarehouseInfo{}
+	info1 := &defines.WarehouseInfo{}
+	info2 := &defines.WarehouseInfo{}
+	info3 := &defines.WarehouseInfo{}
+	width := 4*defines.LANE_WIDTH + 3*defines.SHELVES_WIDTH
+	info.RangeX = make([]int, 2)
+	info.RangeY = make([]int, 2)
+	info0.RangeX = make([]int, 2)
+	info0.RangeY = make([]int, 2)
+	info1.RangeX = make([]int, 2)
+	info1.RangeY = make([]int, 2)
+	info2.RangeX = make([]int, 2)
+	info2.RangeY = make([]int, 2)
+	info3.RangeX = make([]int, 2)
+	info3.RangeY = make([]int, 2)
+	info.Gates = make([]*defines.GateInfo, 4)
+	info0.Gates = make([]*defines.GateInfo, 1)
+	info1.Gates = make([]*defines.GateInfo, 1)
+	info2.Gates = make([]*defines.GateInfo, 1)
+	info3.Gates = make([]*defines.GateInfo, 1)
+	// the center warehouse should be the first element in the RoadMap and this warehouse is the src warehouse.
+	info.RangeX[0] = (defines.GRID_LINE_NUM / 2) * width
+	info.RangeX[1] = (defines.GRID_LINE_NUM/2 + 1) * width
+	info.RangeY[0] = (defines.GRID_LINE_NUM / 2) * width
+	info.RangeY[1] = (defines.GRID_LINE_NUM/2 + 1) * width
+	for i := 0; i < 4; i++ {
+		info.Gates[i] = &defines.GateInfo{}
+		info.Gates[i].GateType = defines.SRC
+	}
+	info.Gates[0].Center.X = width
+	info.Gates[0].Center.Y = 2*width - defines.LANE_WIDTH - defines.SHELVES_WIDTH
+	info.Gates[1].Center.X = width + defines.SHELVES_WIDTH + defines.LANE_WIDTH
+	info.Gates[1].Center.Y = width
+	info.Gates[2].Center.X = width * 2
+	info.Gates[2].Center.Y = width + defines.SHELVES_WIDTH + defines.LANE_WIDTH
+	info.Gates[3].Center.X = 2*width - defines.LANE_WIDTH - defines.SHELVES_WIDTH
+	info.Gates[3].Center.Y = 2 * width
+	info0.RangeX[0] = 0
+	info0.RangeX[1] = width
+	info0.RangeY[0] = 0
+	info0.RangeY[1] = width
+	info0.Gates[0].Center.X = width
+	info0.Gates[0].Center.Y = width - defines.LANE_WIDTH - defines.SHELVES_WIDTH
+	info1.RangeX[0] = (defines.GRID_LINE_NUM - 1) * width
+	info1.RangeX[1] = defines.GRID_LINE_NUM * width
+	info1.RangeY[0] = 0
+	info1.RangeY[1] = width
+	info1.Gates[0].Center.X = 2*width + defines.SHELVES_WIDTH + defines.LANE_WIDTH
+	info1.Gates[0].Center.Y = width
+	info2.RangeX[0] = 0
+	info2.RangeX[1] = width
+	info2.RangeY[0] = (defines.GRID_LINE_NUM - 1) * width
+	info2.RangeY[1] = defines.GRID_LINE_NUM * width
+	info2.Gates[0].Center.X = width - defines.SHELVES_WIDTH - defines.LANE_WIDTH
+	info2.Gates[0].Center.Y = 2 * width
+	info3.RangeX[0] = (defines.GRID_LINE_NUM - 1) * width
+	info3.RangeX[1] = defines.GRID_LINE_NUM * width
+	info3.RangeY[0] = (defines.GRID_LINE_NUM - 1) * width
+	info3.RangeY[1] = defines.GRID_LINE_NUM * width
+	info3.Gates[0].Center.X = 2 * width
+	info3.Gates[0].Center.Y = width*2 + defines.LANE_WIDTH + defines.SHELVES_WIDTH
+	res.Warehouses = append(res.Warehouses, info)
+	res.Warehouses = append(res.Warehouses, info0)
+	res.Warehouses = append(res.Warehouses, info1)
+	res.Warehouses = append(res.Warehouses, info2)
+	res.Warehouses = append(res.Warehouses, info3)
 	return res
 }
