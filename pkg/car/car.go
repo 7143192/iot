@@ -2,6 +2,7 @@ package car
 
 import (
 	"container/heap"
+	"fmt"
 	"iot/pkg/defines"
 )
 import "math"
@@ -139,10 +140,6 @@ func Dijkstra(graph *defines.Graph, start int, end int) []*defines.Pos {
 	hasPath := true
 	times := 0
 	for temp != start {
-		res = append(res, &defines.Pos{
-			X: dist[temp].X,
-			Y: dist[temp].Y,
-		})
 		if times >= 50 {
 			hasPath = false
 			break
@@ -151,6 +148,10 @@ func Dijkstra(graph *defines.Graph, start int, end int) []*defines.Pos {
 			hasPath = false
 			break
 		}
+		res = append(res, &defines.Pos{
+			X: dist[temp].X,
+			Y: dist[temp].Y,
+		})
 		temp = path[temp]
 		times++
 	}
@@ -208,12 +209,17 @@ func ScheduleOnePath(mapInfo *defines.RoadMap, graph *defines.Graph,
 	sID := GetGraphNodeID(start, graph, mapInfo)
 	eID := GetGraphNodeID(dest, graph, mapInfo)
 	got := Dijkstra(graph, sID, eID)
-	startPos := got[len(got)-1]
-	res = append(res, got...)
-	if !(start.X == startPos.X && start.Y == startPos.Y) {
-		GetCurCarDir(mapInfo, carInfo, start, startPos)
-		res = append(res, start)
+	if len(got) > 0 {
+		startPos := got[len(got)-1]
+		res = append(res, got...)
+		if !(start.X == startPos.X && start.Y == startPos.Y) {
+			GetCurCarDir(mapInfo, carInfo, start, startPos)
+			res = append(res, start)
+		}
+		return res
 	}
+	fmt.Printf("startID = %d, destID = %d\n", sID, eID)
+	fmt.Printf("there is no path between node %v and %v!\n", *start, *dest)
 	return res
 }
 
@@ -237,40 +243,31 @@ func ScheduleOneCar(mapInfo *defines.RoadMap, graph *defines.Graph,
 	}
 	carInfo.Start = *start
 	carInfo.Dest = *dest
-	// schedule from init pos to one gate of src warehouse.
-	srcGatePos := &defines.Pos{
-		X: 3160,
-		Y: 5280,
+	//// schedule from init pos to one gate of src warehouse.
+	//srcGatePos := &defines.Pos{
+	//	X: 3160,
+	//	Y: 5280,
+	//}
+	// schedule from init pos to start pos inside the src warehouse.
+	got0 := ScheduleOnePath(mapInfo, graph, carInfo, initPos, start)
+	if len(got0) > 0 {
+		for i := len(got0) - 1; i >= 0; i-- {
+			res = append(res, got0[i])
+		}
 	}
-	got0 := ScheduleOnePath(mapInfo, graph, carInfo, initPos, srcGatePos)
-	res = append(res, got0...)
-	// schedule from warehouse gate to the start pos.
-	got1 := ScheduleOnePath(mapInfo, graph, carInfo, srcGatePos, start)
-	res = append(res, got1...)
-	// schedule from warehouse back to the gate.
-	// NOTE: his may be different from the previous step as there may be conflict between cars' paths.
-	got2 := ScheduleOnePath(mapInfo, graph, carInfo, start, srcGatePos)
-	res = append(res, got2...)
-	// schedule from src gate to the dest warehouse gate.
-	destType := GetDestWarehouseID(dest, mapInfo)
-	if destType == -1 {
-		res = make([]*defines.Pos, 0)
-		return res
+	// schedule from start pos to dest pos inside the dest warehouse.
+	got1 := ScheduleOnePath(mapInfo, graph, carInfo, start, dest)
+	if len(got1) > 0 {
+		for i := len(got1) - 1; i >= 0; i-- {
+			res = append(res, got1[i])
+		}
 	}
-	destGatePos := &defines.Pos{
-		X: mapInfo.Warehouses[destType].Gates[0].Center.X,
-		Y: mapInfo.Warehouses[destType].Gates[0].Center.Y,
+	// schedule from dest pos to init pos of the cars.
+	got2 := ScheduleOnePath(mapInfo, graph, carInfo, dest, initPos)
+	if len(got2) > 0 {
+		for i := len(got2) - 1; i >= 0; i-- {
+			res = append(res, got2[i])
+		}
 	}
-	got3 := ScheduleOnePath(mapInfo, graph, carInfo, srcGatePos, destGatePos)
-	res = append(res, got3...)
-	// schedule from dest gate to the final dest inside the warehouse.
-	got4 := ScheduleOnePath(mapInfo, graph, carInfo, destGatePos, dest)
-	res = append(res, got4...)
-	// back to dest warehouse gate.
-	got5 := ScheduleOnePath(mapInfo, graph, carInfo, dest, destGatePos)
-	res = append(res, got5...)
-	//// back to the init pos.
-	//got6 := ScheduleOnePath(mapInfo, graph, carInfo, destGatePos, initPos)
-	//res = append(res, got6...)
 	return res
 }
