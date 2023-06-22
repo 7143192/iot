@@ -54,3 +54,8 @@ type RoadMap struct {
 	Lanes      []*LaneInfo
 	Warehouses []*WarehouseInfo
 }
+
+type InitInfo struct {
+	MapInfo   *RoadMap
+	GraphInfo *Graph
+}

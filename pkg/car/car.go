@@ -174,29 +174,60 @@ func GetCurCarDir(mapInfo *defines.RoadMap, carInfo *defines.Car, pos *defines.P
 	if lane.LaneType == defines.VERTICAL && pos.Y < start.Y {
 		// TODO: logic to make the car move.
 		carInfo.Dir = defines.UP
-		MoveCarToPos(mapInfo, carInfo, pos, start)
+		StraightMoveCar(mapInfo, carInfo, pos, start)
 	}
 	if lane.LaneType == defines.VERTICAL && pos.Y > start.Y {
 		// TODO: logic to make the car move.
 		carInfo.Dir = defines.DOWN
-		MoveCarToPos(mapInfo, carInfo, pos, start)
+		StraightMoveCar(mapInfo, carInfo, pos, start)
 	}
 	if lane.LaneType == defines.HORIZONTAL && pos.X < start.X {
 		// TODO: logic to make the car move.
 		carInfo.Dir = defines.RIGHT
-		MoveCarToPos(mapInfo, carInfo, pos, start)
+		StraightMoveCar(mapInfo, carInfo, pos, start)
 	}
 	if lane.LaneType == defines.HORIZONTAL && pos.X < start.X {
 		// TODO: logic to make the car move.
 		carInfo.Dir = defines.LEFT
-		MoveCarToPos(mapInfo, carInfo, pos, start)
+		StraightMoveCar(mapInfo, carInfo, pos, start)
 	}
 	return
 }
 
-// MoveCarToPos make the car go straightly. UP / DOWN / LEFT / RIGHT
-func MoveCarToPos(mapInfo *defines.RoadMap, carInfo *defines.Car, start *defines.Pos, dest *defines.Pos) {
+// StraightMoveCar make the car go straightly. UP / DOWN / LEFT / RIGHT
+func StraightMoveCar(mapInfo *defines.RoadMap, carInfo *defines.Car, start *defines.Pos, dest *defines.Pos) {
 
+}
+
+// TurnDirMoveCar the case that the car turn around.
+func TurnDirMoveCar(mapInfo *defines.RoadMap, carInfo *defines.Car, start *defines.Pos, dest *defines.Pos) {
+
+}
+
+// SortDestWarehouse this function should select a dest warehouse for this scheduled car.
+// And maybe can choose a suitable destination pos according to current storage situation?
+func SortDestWarehouse() int {
+	return 1
+}
+
+func GetCarRunningLane(mapInfo *defines.RoadMap, carInfo *defines.Car, pos *defines.Pos) {
+	lane, _ := GetPosInLane(mapInfo, pos)
+	carInfo.LaneInfo = lane
+	if lane.LaneType == defines.VERTICAL {
+		X := lane.Nodes[0].X
+		if pos.X >= X-defines.LANE_WIDTH && pos.X <= X {
+			carInfo.RunningLane = 0
+		} else {
+			carInfo.RunningLane = 1
+		}
+	} else {
+		Y := lane.Nodes[0].Y
+		if pos.Y >= Y-defines.LANE_WIDTH && pos.Y <= Y {
+			carInfo.RunningLane = 0
+		} else {
+			carInfo.RunningLane = 1
+		}
+	}
 }
 
 func ScheduleOnePath(mapInfo *defines.RoadMap, graph *defines.Graph,
