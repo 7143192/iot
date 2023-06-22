@@ -5,18 +5,34 @@ import (
 	"fmt"
 	"io/ioutil"
 	"iot/pkg/defines"
-	"iot/pkg/roadMap"
 	"log"
 	"net/http"
 	"strings"
 )
 
 func main() {
-	url := "http://05757d8afcd54fc6881df55c8b2e2908.apig.cn-east-3.huaweicloudapis.com/go_test"
-	body := defines.InitInfo{}
-	body.MapInfo = roadMap.MapInit()
-	body.GraphInfo = roadMap.GraphInit(body.MapInfo)
-	bodyByte, _ := json.Marshal(&body)
+	// url := "https://05757d8afcd54fc6881df55c8b2e2908.apig.cn-east-3.huaweicloudapis.com/carSchedule/start"
+	url := "https://iam.myhuaweicloud.com/v3/auth/tokens?nocatalog=true"
+	// body := defines.TestEntireBody{}
+	auth := defines.Auth{}
+	domain := defines.Domain{}
+	domain.Name = "zhyueyan"
+	user := defines.User{}
+	user.DomainInfo = domain
+	user.Name = "liyuhan"
+	user.Pwd = "abcLYH125558"
+	password := defines.Password{}
+	password.UserInfo = user
+	methods := make([]string, 0)
+	methods = append(methods, "password")
+	identity := defines.Identity{}
+	identity.Methods = methods
+	identity.PwdInfo = password
+	auth.IdentityInfo = identity
+	//body.AuthInfo = auth
+	//body.MapInfo = roadMap.MapInit()
+	//body.GraphInfo = roadMap.GraphInit(body.MapInfo)
+	bodyByte, _ := json.Marshal(&auth)
 	// send request.
 	res, err := http.Post(url, "application/json", strings.NewReader(string(bodyByte)))
 	defer res.Body.Close()
