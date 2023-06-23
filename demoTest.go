@@ -6,6 +6,7 @@ import (
 	"huaweicloud.com/go-runtime/events/apig"
 	"huaweicloud.com/go-runtime/go-api/context"
 	"huaweicloud.com/go-runtime/pkg/runtime"
+	"iot/pkg/car"
 	"iot/pkg/defines"
 )
 
@@ -45,8 +46,19 @@ func ApigDemoTest(payload []byte, ctx context.RuntimeContext) (interface{}, erro
 	mapByte, _ := json.Marshal(mapInfo)
 	graphInfo := input.Init.GraphInfo
 	graphByte, _ := json.Marshal(graphInfo)
+	carInfo := input.Init.CarInfo
+	start := input.Init.Start
+	dest := input.Init.Dest
+	startByte, _ := json.Marshal(start)
+	destByte, _ := json.Marshal(dest)
 	fmt.Printf("demo got mapInfo = %v\n", string(mapByte))
 	fmt.Printf("demo got graphInfo = %v\n", string(graphByte))
+	fmt.Printf("demo got startInfo = %v\n", string(startByte))
+	fmt.Printf("demo got destInfo = %v\n", string(destByte))
+	res := car.ScheduleOneCar(mapInfo, graphInfo, carInfo, start, dest)
+	for _, val := range res {
+		fmt.Printf("x = %v, y = %v\n", val.X, val.Y)
+	}
 	apigResp := apig.APIGTriggerResponse{
 		Body: string(payload),
 		Headers: map[string]string{

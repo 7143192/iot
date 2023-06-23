@@ -57,6 +57,18 @@ func triggerWorkflow() {
 	body1 := defines.InitInfo{}
 	body1.MapInfo = roadMap.MapInit()
 	body1.GraphInfo = roadMap.GraphInit(body1.MapInfo)
+	body1.CarInfo = &defines.Car{}
+	body1.CarInfo.Dir = defines.RIGHT
+	startPos := &defines.Pos{
+		X: 4200,
+		Y: 4200,
+	}
+	destPos := &defines.Pos{
+		X: 7360,
+		Y: 8440,
+	}
+	body1.Start = startPos
+	body1.Dest = destPos
 	body11 := defines.InputInfo{}
 	body11.Init = body1
 	body0 := defines.StartBody{}
