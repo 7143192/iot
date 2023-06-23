@@ -59,3 +59,11 @@ type InitInfo struct {
 	MapInfo   *RoadMap
 	GraphInfo *Graph
 }
+
+type InputInfo struct {
+	Init InitInfo
+}
+
+type StartBody struct {
+	Input InputInfo `json:"input"`
+}

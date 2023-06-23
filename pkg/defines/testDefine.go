@@ -8,6 +8,7 @@ type TestBody struct {
 
 type Auth struct {
 	IdentityInfo Identity `json:"identity"`
+	ScopeInfo    Scope    `json:"scope"`
 }
 
 type Identity struct {
@@ -33,4 +34,16 @@ type TestEntireBody struct {
 	MapInfo   *RoadMap `json:"mapInfo"`
 	GraphInfo *Graph   `json:"graphInfo"`
 	AuthInfo  Auth     `json:"auth"`
+}
+
+type Scope struct {
+	Pro Project `json:"project"`
+}
+
+type Project struct {
+	Name string `json:"name"`
+}
+
+type TestAuth struct {
+	AuthInfo Auth `json:"auth"`
 }

@@ -7,27 +7,26 @@ import (
 	"huaweicloud.com/go-runtime/go-api/context"
 	"huaweicloud.com/go-runtime/pkg/runtime"
 	"iot/pkg/defines"
-	"net/http"
-	"strings"
 )
 
 func ApigRedisTest(payload []byte, ctx context.RuntimeContext) (interface{}, error) {
-
 	var apigEvent apig.APIGTriggerEvent
 	err := json.Unmarshal(payload, &apigEvent)
 	if err != nil {
 		fmt.Println("Unmarshal failed")
 		return "invalid data", err
 	}
+
 	rawBody := apigEvent.GetRawBody()
 	rawBodyByte := []byte(rawBody)
 	initInfo := &defines.InitInfo{}
 	_ = json.Unmarshal(rawBodyByte, initInfo)
 	mapByte, _ := json.Marshal(initInfo.MapInfo)
 	graphByte, _ := json.Marshal(initInfo.GraphInfo)
+	ctx.GetLogger().Logf("userData:%s", apigEvent.UserData)
 	ctx.GetLogger().Logf("rawBody:%s", rawBody)
 	ctx.GetLogger().Logf("mapInfo:%s", string(mapByte))
-	ctx.GetLogger().Logf("rawBody:%s", string(graphByte))
+	ctx.GetLogger().Logf("graphInfo:%s", string(graphByte))
 	//// then store these info into Redis.
 	//rd := redis.NewClient(&redis.Options{
 	//	Addr:     "192.168.189.129:6379", // url
@@ -62,13 +61,23 @@ func ApigRedisTest(payload []byte, ctx context.RuntimeContext) (interface{}, err
 		},
 		StatusCode: 200,
 	}
-	// call the demo function here.
-	url := "http://05757d8afcd54fc6881df55c8b2e2908.apig.cn-east-3.huaweicloudapis.com/demo_test"
-	res, err := http.Post(url, "application/json", strings.NewReader(rawBody))
-	defer res.Body.Close()
+	//// call the demo function here.
+	//url := "http://05757d8afcd54fc6881df55c8b2e2908.apig.cn-east-3.huaweicloudapis.com/demo_test"
+	//res, err := http.Post(url, "application/json", strings.NewReader(rawBody))
+	//defer res.Body.Close()
 	return apigResp, nil
 }
 
 func main() {
 	runtime.Register(ApigRedisTest)
 }
+
+//func handler(event json.RawMessage, ctx context.RuntimeContext) (interface{}, error) {
+//	input := defines.InputInfo{}
+//	_ = json.Unmarshal(event, &input)
+//	fmt.Printf("input = %v\n", input)
+//	response := map[string]interface{}{
+//		"result": "test",
+//	}
+//	return response, nil
+//}
