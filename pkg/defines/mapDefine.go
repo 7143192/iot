@@ -17,6 +17,7 @@ const (
 	CAR_WIDTH     = 30   // cm
 	GRID_NUM      = 9    // 3 * 3, every grid contains **4** nodes.
 	GRID_LINE_NUM = 3
+	REAL_OFFSET   = 20
 )
 
 type MapNode struct {
@@ -50,14 +51,19 @@ type WarehouseInfo struct {
 }
 
 type RoadMap struct {
-	Nodes      []*MapNode
-	Lanes      []*LaneInfo
-	Warehouses []*WarehouseInfo
+	Nodes           []*MapNode
+	Lanes           []*LaneInfo
+	Warehouses      []*WarehouseInfo
+	VerticalLanes   []*LaneInfo
+	HorizontalLanes []*LaneInfo
 }
 
 type InitInfo struct {
 	MapInfo   *RoadMap
 	GraphInfo *Graph
+	CarInfo   *Car
+	Start     *Pos
+	Dest      *Pos
 }
 
 type InputInfo struct {

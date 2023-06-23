@@ -4,14 +4,16 @@ import (
 	"container/heap"
 	"fmt"
 	"iot/pkg/defines"
+	"math"
 )
-import "math"
 
 // init pos of one car.
 var initPos *defines.Pos = &defines.Pos{
 	X: 1040,
 	Y: 5280,
 }
+
+var InitPosSet = [4]*defines.Pos{&defines.Pos{X: 1040, Y: 4180}, &defines.Pos{X: 1040, Y: 4220}, &defines.Pos{X: 1040, Y: 5260}, &defines.Pos{X: 1040, Y: 5300}}
 
 // heap part
 
@@ -34,38 +36,59 @@ func (h *NodeHeap) Pop() interface{} {
 }
 
 // GetPosInLane return laneInfo that contains this pos and the nearest node to the pos in this lane.
-func GetPosInLane(mapInfo *defines.RoadMap, pos *defines.Pos) (*defines.LaneInfo, *defines.MapNode) {
-	lanes := mapInfo.Lanes
-	size := len(lanes)
-	for i := 0; i < size; i++ {
-		lane := lanes[i]
-		if lane.LaneType == defines.VERTICAL && pos.X > lane.CenterPos-defines.LANE_WIDTH && pos.X < lane.CenterPos+defines.LANE_WIDTH {
-			nodes := lane.Nodes
-			size1 := len(nodes)
-			min := 99999999
-			resNode := &defines.MapNode{}
-			for j := 0; j < size1; j++ {
-				dis := math.Abs(float64(nodes[j].Y - pos.Y))
-				if int(dis) < min {
-					min = int(dis)
-					resNode = nodes[j]
+func GetPosInLane(mapInfo *defines.RoadMap, pos *defines.Pos, carInfo *defines.Car) (*defines.LaneInfo, *defines.MapNode) {
+	if carInfo.Dir == defines.LEFT || carInfo.Dir == defines.RIGHT {
+		// case that running on one horizontal lane.
+		size := len(mapInfo.HorizontalLanes)
+		for i := 0; i < size; i++ {
+			lane := mapInfo.HorizontalLanes[i]
+			if lane.LaneType == defines.HORIZONTAL && pos.Y > lane.CenterPos-defines.LANE_WIDTH && pos.Y < lane.CenterPos+defines.LANE_WIDTH {
+				nodes := lane.Nodes
+				size1 := len(nodes)
+				min := 99999999
+				resNode := &defines.MapNode{}
+				for j := 0; j < size1; j++ {
+					if carInfo.Dir == defines.LEFT && nodes[j].X > pos.X {
+						continue
+					}
+					if carInfo.Dir == defines.RIGHT && nodes[j].X < pos.X {
+						continue
+					}
+					dis := math.Abs(float64(nodes[j].X - pos.X))
+					if int(dis) < min {
+						min = int(dis)
+						resNode = nodes[j]
+					}
 				}
+				return lane, resNode
 			}
-			return lane, resNode
 		}
-		if lane.LaneType == defines.HORIZONTAL && pos.Y > lane.CenterPos-defines.LANE_WIDTH && pos.Y < lane.CenterPos+defines.LANE_WIDTH {
-			nodes := lane.Nodes
-			size1 := len(nodes)
-			min := 99999999
-			resNode := &defines.MapNode{}
-			for j := 0; j < size1; j++ {
-				dis := math.Abs(float64(nodes[j].X - pos.X))
-				if int(dis) < min {
-					min = int(dis)
-					resNode = nodes[j]
+	}
+	if carInfo.Dir == defines.UP || carInfo.Dir == defines.DOWN {
+		// case that running on one vertical lane.
+		size := len(mapInfo.VerticalLanes)
+		for i := 0; i < size; i++ {
+			lane := mapInfo.VerticalLanes[i]
+			if lane.LaneType == defines.VERTICAL && pos.X > lane.CenterPos-defines.LANE_WIDTH && pos.X < lane.CenterPos+defines.LANE_WIDTH {
+				nodes := lane.Nodes
+				size1 := len(nodes)
+				min := 99999999
+				resNode := &defines.MapNode{}
+				for j := 0; j < size1; j++ {
+					if carInfo.Dir == defines.UP && nodes[j].Y < pos.Y {
+						continue
+					}
+					if carInfo.Dir == defines.DOWN && nodes[j].Y > pos.Y {
+						continue
+					}
+					dis := math.Abs(float64(nodes[j].Y - pos.Y))
+					if int(dis) < min {
+						min = int(dis)
+						resNode = nodes[j]
+					}
 				}
+				return lane, resNode
 			}
-			return lane, resNode
 		}
 	}
 	return nil, nil
@@ -78,17 +101,19 @@ func CheckInWareHouse(house *defines.WarehouseInfo, pos *defines.Pos) bool {
 	return false
 }
 
-func GetGraphNodeID(pos *defines.Pos, graph *defines.Graph, mapInfo *defines.RoadMap) int {
+func GetGraphNodeID(pos *defines.Pos, graph *defines.Graph, mapInfo *defines.RoadMap, carInfo *defines.Car) int {
 	nodes := graph.Nodes
 	found := false
+	// this a pos in a center of one mapNode.
 	for i := 0; i < len(nodes); i++ {
 		if pos.X == nodes[i].X && pos.Y == nodes[i].Y {
 			found = true
 			return i
 		}
 	}
+	// not a center of one node.
 	if found == false {
-		_, resNode := GetPosInLane(mapInfo, pos)
+		_, resNode := GetPosInLane(mapInfo, pos, carInfo)
 		for i := 0; i < len(nodes); i++ {
 			if resNode.X == nodes[i].X && resNode.Y == nodes[i].Y {
 				return i
@@ -170,7 +195,7 @@ func Dijkstra(graph *defines.Graph, start int, end int) []*defines.Pos {
 func GetCurCarDir(mapInfo *defines.RoadMap, carInfo *defines.Car, pos *defines.Pos, start *defines.Pos) {
 	carInfo.CurX = start.X
 	carInfo.CurY = start.Y
-	lane, _ := GetPosInLane(mapInfo, pos)
+	lane, _ := GetPosInLane(mapInfo, pos, carInfo)
 	if lane.LaneType == defines.VERTICAL && pos.Y < start.Y {
 		// TODO: logic to make the car move.
 		carInfo.Dir = defines.UP
@@ -204,14 +229,17 @@ func TurnDirMoveCar(mapInfo *defines.RoadMap, carInfo *defines.Car, start *defin
 
 }
 
-// SortDestWarehouse this function should select a dest warehouse for this scheduled car.
+// SelectDestWarehouse this function should select a dest warehouse for this scheduled car.
 // And maybe can choose a suitable destination pos according to current storage situation?
-func SortDestWarehouse() int {
+func SelectDestWarehouse() int {
 	return 1
 }
 
+// GetCarRunningLane vertical lanes: left 0, right 1
+// horizontal lanes: up 0, down 1.
+// one car should not change its running lane number during its progress.(except for the case to change lane)
 func GetCarRunningLane(mapInfo *defines.RoadMap, carInfo *defines.Car, pos *defines.Pos) {
-	lane, _ := GetPosInLane(mapInfo, pos)
+	lane, _ := GetPosInLane(mapInfo, pos, carInfo)
 	carInfo.LaneInfo = lane
 	if lane.LaneType == defines.VERTICAL {
 		X := lane.Nodes[0].X
@@ -223,9 +251,9 @@ func GetCarRunningLane(mapInfo *defines.RoadMap, carInfo *defines.Car, pos *defi
 	} else {
 		Y := lane.Nodes[0].Y
 		if pos.Y >= Y-defines.LANE_WIDTH && pos.Y <= Y {
-			carInfo.RunningLane = 0
-		} else {
 			carInfo.RunningLane = 1
+		} else {
+			carInfo.RunningLane = 0
 		}
 	}
 }
@@ -237,8 +265,8 @@ func ScheduleOnePath(mapInfo *defines.RoadMap, graph *defines.Graph,
 	if start.X == dest.X && start.Y == dest.Y {
 		return res
 	}
-	sID := GetGraphNodeID(start, graph, mapInfo)
-	eID := GetGraphNodeID(dest, graph, mapInfo)
+	sID := GetGraphNodeID(start, graph, mapInfo, carInfo)
+	eID := GetGraphNodeID(dest, graph, mapInfo, carInfo)
 	got := Dijkstra(graph, sID, eID)
 	if len(got) > 0 {
 		startPos := got[len(got)-1]
@@ -254,22 +282,98 @@ func ScheduleOnePath(mapInfo *defines.RoadMap, graph *defines.Graph,
 	return res
 }
 
-func GetDestWarehouseID(dest *defines.Pos, mapInfo *defines.RoadMap) int {
-	for i := 0; i < 4; i++ {
-		if dest.X > mapInfo.Warehouses[i+1].RangeX[0] && dest.X < mapInfo.Warehouses[i+1].RangeX[1] &&
-			dest.Y > mapInfo.Warehouses[i+1].RangeY[0] && dest.Y < mapInfo.Warehouses[i+1].RangeY[1] {
-			return i + 1
+func GetWarehouseID(pos *defines.Pos, mapInfo *defines.RoadMap) int {
+	for i := 0; i < 5; i++ {
+		if pos.X > mapInfo.Warehouses[i].RangeX[0] && pos.X < mapInfo.Warehouses[i].RangeX[1] &&
+			pos.Y > mapInfo.Warehouses[i].RangeY[0] && pos.Y < mapInfo.Warehouses[i].RangeY[1] {
+			return i
 		}
 	}
 	return -1
 }
 
+// GenerateRealPath this function is used to generate real car path from Dijkstra path result.
+// i.e., the Dijkstra result only contains center of every node,
+// but the real pos for every point in the path of one car should have an offset from the center line.
+func GenerateRealPath(got []*defines.Pos, carInfo *defines.Car, mapInfo *defines.RoadMap) []*defines.Pos {
+	size := len(got)
+	// TODO: in version 1.0, the initPos of one car is fixed.
+	// later should choose the init pos from InitPosSet randomly.
+	GetCarRunningLane(mapInfo, carInfo, InitPosSet[0])
+	res := make([]*defines.Pos, 0)
+	if size == 0 {
+		return res
+	}
+	for i := 0; i < size-1; i++ {
+		pos1 := got[i]
+		pos2 := got[i+1]
+		if pos1.Y == pos2.Y && pos1.X == pos2.X {
+			// stay in the same position.
+			tmp1 := &defines.Pos{X: pos1.X, Y: pos1.Y}
+			res = append(res, tmp1)
+			continue
+		}
+		// TODO: in version 1.0, only consider straight-running and turn 90 points.
+		if pos1.Y == pos2.Y {
+			// running straight in a horizontal lane.
+			tmp1 := &defines.Pos{}
+			tmp2 := &defines.Pos{}
+			if carInfo.RunningLane == 0 {
+				tmp1.X = pos1.X
+				tmp2.X = pos2.X - defines.REAL_OFFSET
+
+				tmp1.Y = pos1.Y + defines.REAL_OFFSET
+				tmp2.Y = pos1.Y + defines.REAL_OFFSET
+			} else {
+				tmp1.X = pos1.X
+				tmp2.X = pos2.X + defines.REAL_OFFSET
+
+				tmp1.Y = pos1.Y - defines.REAL_OFFSET
+				tmp2.Y = pos1.Y - defines.REAL_OFFSET
+			}
+			if i == 0 {
+				res = append(res, tmp1)
+			}
+			res = append(res, tmp2)
+		}
+		if pos1.X == pos2.X {
+			// running straight in a horizontal lane.
+			tmp1 := &defines.Pos{}
+			tmp2 := &defines.Pos{}
+			if carInfo.RunningLane == 0 {
+				tmp1.Y = pos1.Y
+				tmp2.Y = pos2.Y + defines.REAL_OFFSET
+
+				tmp1.X = pos1.X - defines.REAL_OFFSET
+				tmp2.X = pos1.X - defines.REAL_OFFSET
+			} else {
+				tmp1.Y = pos1.Y
+				tmp2.Y = pos2.Y - defines.REAL_OFFSET
+
+				tmp1.X = pos1.X + defines.REAL_OFFSET
+				tmp2.X = pos1.X + defines.REAL_OFFSET
+			}
+			if i == 0 {
+				res = append(res, tmp1)
+			}
+			res = append(res, tmp2)
+		}
+	}
+	return res
+}
+
 // ScheduleOneCar start and dest pos should be center pos of one car.
 func ScheduleOneCar(mapInfo *defines.RoadMap, graph *defines.Graph,
 	carInfo *defines.Car, start *defines.Pos, dest *defines.Pos) []*defines.Pos {
+	carInfo.Dir = defines.RIGHT // init dir of one car should be RIGHT (TODO: version 1.0)
 	// the start pos should be inside the src warehouse!
 	res := make([]*defines.Pos, 0)
-	if !CheckInWareHouse(mapInfo.Warehouses[0], start) {
+	if GetWarehouseID(start, mapInfo) != 0 {
+		fmt.Printf("the start pos is not inside the src warehouse!\n")
+		return res
+	}
+	destWarehouseType := GetWarehouseID(dest, mapInfo)
+	if destWarehouseType == 0 || destWarehouseType == -1 {
 		return res
 	}
 	carInfo.Start = *start
@@ -280,7 +384,7 @@ func ScheduleOneCar(mapInfo *defines.RoadMap, graph *defines.Graph,
 	//	Y: 5280,
 	//}
 	// schedule from init pos to start pos inside the src warehouse.
-	got0 := ScheduleOnePath(mapInfo, graph, carInfo, initPos, start)
+	got0 := ScheduleOnePath(mapInfo, graph, carInfo, InitPosSet[0], start)
 	if len(got0) > 0 {
 		for i := len(got0) - 1; i >= 0; i-- {
 			res = append(res, got0[i])
@@ -294,11 +398,13 @@ func ScheduleOneCar(mapInfo *defines.RoadMap, graph *defines.Graph,
 		}
 	}
 	// schedule from dest pos to init pos of the cars.
-	got2 := ScheduleOnePath(mapInfo, graph, carInfo, dest, initPos)
+	got2 := ScheduleOnePath(mapInfo, graph, carInfo, dest, InitPosSet[0])
 	if len(got2) > 0 {
 		for i := len(got2) - 1; i >= 0; i-- {
 			res = append(res, got2[i])
 		}
 	}
-	return res
+	// generate real-car paths.
+	finalRes := GenerateRealPath(res, carInfo, mapInfo)
+	return finalRes
 }

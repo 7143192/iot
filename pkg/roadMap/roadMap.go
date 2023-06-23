@@ -52,6 +52,8 @@ func MapInit() *defines.RoadMap {
 		// init horizontal lanes first.
 		res.Lanes = append(res.Lanes, lane0)
 		res.Lanes = append(res.Lanes, lane1)
+		res.HorizontalLanes = append(res.HorizontalLanes, lane0)
+		res.HorizontalLanes = append(res.HorizontalLanes, lane1)
 	}
 	// init vertical lanes next.
 	for i := 0; i < defines.GRID_LINE_NUM; i++ {
@@ -89,6 +91,8 @@ func MapInit() *defines.RoadMap {
 		x = (i + 1) * (4*defines.LANE_WIDTH + 3*defines.SHELVES_WIDTH)
 		res.Lanes = append(res.Lanes, lane0)
 		res.Lanes = append(res.Lanes, lane1)
+		res.VerticalLanes = append(res.VerticalLanes, lane0)
+		res.VerticalLanes = append(res.VerticalLanes, lane1)
 	}
 	// then init warehouses info.
 	info := &defines.WarehouseInfo{}

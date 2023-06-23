@@ -28,6 +28,7 @@ func TestCar(t *testing.T) {
 		Y: 8440,
 	}
 	carInfo := &defines.Car{}
+	carInfo.Dir = defines.RIGHT
 	got := car.ScheduleOneCar(mapInfo, graph, carInfo, startPos, destPos)
 	for i := 0; i < len(got); i++ {
 		fmt.Printf("path_x = %d, path_y = %d\n", got[i].X, got[i].Y)
