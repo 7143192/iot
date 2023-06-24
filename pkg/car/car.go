@@ -13,7 +13,7 @@ var initPos *defines.Pos = &defines.Pos{
 	Y: 5280,
 }
 
-var InitPosSet = [4]*defines.Pos{&defines.Pos{X: 1040, Y: 4180}, &defines.Pos{X: 1040, Y: 4220}, &defines.Pos{X: 1040, Y: 5260}, &defines.Pos{X: 1040, Y: 5300}}
+var InitPosSet = [4]*defines.Pos{{X: 1040, Y: 4180}, {X: 1040, Y: 4220}, {X: 1040, Y: 5260}, {X: 1040, Y: 5300}}
 
 // heap part
 
@@ -362,6 +362,15 @@ func GenerateRealPath(got []*defines.Pos, carInfo *defines.Car, mapInfo *defines
 	return res
 }
 
+// CollectItems this function is a template, its purpose is to get all items in the src warehouse.
+func CollectItems() {
+
+}
+
+func UnloadItems() {
+
+}
+
 // ScheduleOneCar start and dest pos should be center pos of one car.
 func ScheduleOneCar(mapInfo *defines.RoadMap, graph *defines.Graph,
 	carInfo *defines.Car, start *defines.Pos, dest *defines.Pos) []*defines.Pos {
@@ -390,6 +399,8 @@ func ScheduleOneCar(mapInfo *defines.RoadMap, graph *defines.Graph,
 			res = append(res, got0[i])
 		}
 	}
+	// collect items.
+	CollectItems()
 	// schedule from start pos to dest pos inside the dest warehouse.
 	got1 := ScheduleOnePath(mapInfo, graph, carInfo, start, dest)
 	if len(got1) > 0 {
@@ -397,6 +408,8 @@ func ScheduleOneCar(mapInfo *defines.RoadMap, graph *defines.Graph,
 			res = append(res, got1[i])
 		}
 	}
+	// unload all items.
+	UnloadItems()
 	// schedule from dest pos to init pos of the cars.
 	got2 := ScheduleOnePath(mapInfo, graph, carInfo, dest, InitPosSet[0])
 	if len(got2) > 0 {
@@ -406,5 +419,9 @@ func ScheduleOneCar(mapInfo *defines.RoadMap, graph *defines.Graph,
 	}
 	// generate real-car paths.
 	finalRes := GenerateRealPath(res, carInfo, mapInfo)
+	if len(finalRes) > 0 {
+		finalRes[0].X = InitPosSet[0].X
+		finalRes[0].Y = InitPosSet[0].Y
+	}
 	return finalRes
 }
